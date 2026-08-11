@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+	<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -42,6 +42,27 @@ button,input{font:inherit}.top{height:68px;display:flex;align-items:center;justi
 .coverCard{text-align:center;width:min(650px,88vw);padding:30px}.coverLine{height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:25px 0}.coverIntro .eyebrow{color:var(--gold2);font-size:10px;letter-spacing:.3em;text-transform:uppercase}.coverIntro h2{font:700 clamp(38px,7vw,76px)/.95 "Playfair Display",serif;margin:13px 0}.coverIntro p{color:#aaa;font-size:12px;line-height:1.7}.enter{margin-top:20px;border:1px solid rgba(215,181,74,.6);background:linear-gradient(135deg,#b38b23,#e7cc66);color:#17130a;border-radius:10px;padding:12px 22px;font-weight:800;font-size:11px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
 @media(max-width:800px){.side{width:58px}.side button{width:42px;height:42px}.drawer{left:58px}.viewer{padding:30px 8px 60px}.title h1{font-size:18px}.title p{display:none}.top{padding:0 12px}.topActions .hideMobile{display:none}#bookWrap{width:94vw;height:72vh}.thumbs{width:150px}}
 @media(max-width:520px){.logoText span{display:none}.logoText b{font-size:10px}.top{height:60px}.stage{inset:60px 0 0}.drawer,.thumbs{top:60px}.backdrop{inset:60px 0 0}.side{display:none}.drawer{left:0}.title{top:12px}.viewer{padding-top:48px}}
+
+@media(max-width:700px){
+  body{overflow:hidden;touch-action:pan-y}
+  .top{height:58px;padding:0 10px}
+  .stage{inset:58px 0 0}
+  .viewer{padding:48px 3px 62px;justify-content:center;overflow:hidden}
+  .title{top:8px;width:92vw}
+  .title h1{font-size:16px}
+  #bookWrap{width:97vw;height:calc(100vh - 150px);min-height:360px;max-height:720px}
+  #book{width:100%;height:100%;touch-action:none}
+  .bottom{bottom:7px;gap:3px;padding:4px 5px}
+  .bottom button{min-width:34px;height:34px}
+  .counter{min-width:78px;font-size:10px}
+  .drawer{top:58px}
+  .thumbs{top:58px}
+}
+@media(max-width:380px){
+  .counter{min-width:64px}
+  .bottom button{min-width:31px;height:31px}
+}
+
 </style>
 </head>
 <body>
@@ -125,20 +146,54 @@ async function init(){
   const book=document.getElementById('book');book.innerHTML='';
   const pages=[];
   for(let i=1;i<=pdf.numPages;i++){
-   const el=document.createElement('div');el.className='page';
+   const el=document.createElement('div');el.className='page';el.style.position='relative';
    const c=document.createElement('canvas');el.appendChild(c);book.appendChild(el);
-   pages.push({el,c});renderPage(i,c);
+   pages.push({el,c});await renderPage(i,c,el);
   }
-  flip=new St.PageFlip(book,{width:600,height:780,size:'stretch',minWidth:260,maxWidth:900,minHeight:360,maxHeight:1000,maxShadowOpacity:.45,showCover:true,mobileScrollSupport:true,flippingTime:700,usePortrait:true,drawShadow:true});
-  flip.loadFromHTML(pages.map(p=>p.el));flip.on('flip',e=>update(e.data+1));update(1);
+
+  if(!window.St || !St.PageFlip) throw new Error('PageFlip library failed to load');
+
+  const mobile=window.innerWidth<=700;
+  flip=new St.PageFlip(book,{
+   width:mobile?420:600,height:mobile?600:780,size:'stretch',
+   minWidth:260,maxWidth:900,minHeight:360,maxHeight:1000,
+   maxShadowOpacity:.45,showCover:true,mobileScrollSupport:true,
+   flippingTime:650,usePortrait:mobile,drawShadow:true,startZIndex:0
+  });
+  flip.loadFromHTML(pages.map(p=>p.el));
+  flip.on('flip',e=>update(e.data+1));update(1);
   renderOrgList();renderThumbs();
   window.addEventListener('resize',fit);fit();
- }catch(e){document.getElementById('book').innerHTML='<div class="loading">Catalog could not be loaded. Keep this page and SLF-RSO-Catalog.pdf in the same folder.</div>';console.error(e)}
+ }catch(e){
+  document.getElementById('book').innerHTML='<div class="loading">Catalog could not be loaded. Keep this page and SLF-RSO-Catalog.pdf in the same folder.</div>';
+  console.error(e);
+ }
 }
-async function renderPage(n,c){
- try{const p=await pdf.getPage(n),v=p.getViewport({scale:1.45});c.width=v.width;c.height=v.height;await p.render({canvasContext:c.getContext('2d'),viewport:v}).promise}
- catch(e){}
+
+async function renderPage(n,c,el){
+ try{
+  const p=await pdf.getPage(n);
+  const v=p.getViewport({scale:1.45});
+  c.width=v.width;c.height=v.height;
+  await p.render({canvasContext:c.getContext('2d'),viewport:v}).promise;
+
+  // Recreate PDF hyperlink annotations as transparent HTML links so they remain
+  // clickable after the page is rendered into a canvas.
+  const annotations=await p.getAnnotations({intent:'display'});
+  annotations.forEach(a=>{
+   if(a.subtype!=='Link' || !a.url) return;
+   const r=v.convertToViewportRectangle(a.rect);
+   const left=Math.min(r[0],r[2]), top=Math.min(r[1],r[3]);
+   const width=Math.abs(r[2]-r[0]), height=Math.abs(r[3]-r[1]);
+   const link=document.createElement('a');
+   link.href=a.url;link.target='_blank';link.rel='noopener noreferrer';
+   link.setAttribute('aria-label','Open link');
+   link.style.cssText=`position:absolute;left:${left}px;top:${top}px;width:${width}px;height:${height}px;z-index:5;display:block;background:transparent;cursor:pointer;`;
+   el.appendChild(link);
+  });
+ }catch(e){console.warn('Page render error',n,e)}
 }
+
 async function renderThumbs(){
  const grid=document.getElementById('thumbGrid');
  for(let i=1;i<=pdf.numPages;i++){
@@ -148,10 +203,21 @@ async function renderThumbs(){
  }
 }
 function update(n){document.getElementById('counter').textContent=`Page ${n} of ${pdf.numPages}`}
-function next(){flip?.flipNext()}function prev(){flip?.flipPrev()}function first(){flip?.turnToPage(0)}function last(){pdf&&flip?.turnToPage(pdf.numPages-1)}
+function next(){flip?.flipNext()}function prev(){flip?.flipPrev()}
+window.addEventListener('orientationchange',()=>setTimeout(fit,250));function first(){flip?.turnToPage(0)}function last(){pdf&&flip?.turnToPage(pdf.numPages-1)}
 function go(n){flip?.turnToPage(n-1);closePanels()}
 function zoom(d){zoomLevel=Math.max(.85,Math.min(1.2,zoomLevel+d*.08));document.getElementById('bookWrap').style.transform=`scale(${zoomLevel})`}
-function fit(){try{flip?.updateState?.({width:Math.min(900,document.getElementById('bookWrap').clientWidth/2),height:Math.min(1000,window.innerHeight*.75)})}catch(e){}}
+function fit(){
+ try{
+  if(!flip)return;
+  const mobile=window.innerWidth<=700;
+  const box=document.getElementById('bookWrap');
+  flip.updateState?.({
+   width:mobile?Math.min(560,box.clientWidth*.96):Math.min(900,box.clientWidth/2),
+   height:mobile?Math.min(760,window.innerHeight*.68):Math.min(1000,window.innerHeight*.75)
+  });
+ }catch(e){}
+}
 function fullscreen(){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.()}
 function toggleDrawer(){document.getElementById('drawer').classList.toggle('open');document.getElementById('backdrop').classList.toggle('open');if(document.getElementById('drawer').classList.contains('open'))document.getElementById('search').focus()}
 function toggleThumbs(){document.getElementById('thumbs').classList.toggle('open');document.getElementById('backdrop').classList.toggle('open')}
@@ -170,6 +236,5 @@ document.addEventListener('keydown',e=>{if(e.key==='ArrowRight')next();if(e.key=
 setTimeout(()=>document.getElementById('intro').classList.add('hide'),2200);
 init();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
 </body>
 </html>
