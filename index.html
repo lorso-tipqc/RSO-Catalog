@@ -47,19 +47,787 @@ button,input{font:inherit}.top{height:68px;display:flex;align-items:center;justi
   body{overflow:hidden}
   .top{height:58px;padding:0 10px}
   .stage{inset:58px 0 0}
-  .viewer{padding:44px 2px 64px;overflow:hidden}
-  .title{top:8px;width:94vw}
-  .title h1{font-size:16px}
+  .viewer{
+    padding:92px 2px 64px;
+    overflow:hidden;
+    justify-content:flex-start;
+  }
+  .title{
+    top:10px;
+    width:94vw;
+    z-index:2;
+  }
+  .title h1{font-size:16px;margin-top:7px}
   .title p{font-size:9px}
   #bookWrap{
     width:96vw;
-    height:calc(100vh - 150px);
-    min-height:360px;
-    max-height:720px;
+    height:calc(100vh - 230px);
+    min-height:330px;
+    max-height:620px;
     margin:0 auto;
+    z-index:1;
   }
   #book{width:100%;height:100%}
-  .bottom{bottom:7px;gap:3px;padding:4px 5px}
+  .bottom{bottom:7px;gap:3px;padding:4px 5px;z-index:20}
+  .bottom button{min-width:34px;height:34px}
+  .counter{min-width:78px;font-size:10px}
+  .thumbs{top:58px}
+  .drawer{top:58px}
+}
+
+</style>
+</head>
+<body>
+<div class="coverIntro" id="intro">
+  <div class="coverCard">
+    <div class="eyebrow">Recognized Student Organizations</div>
+    <div class="coverLine"></div>
+    <h2>Student Life Fair<br>2026</h2>
+    <p>PIXARVERSE · RSO CATALOG</p>
+    <p>Explore the organizations, communities, and opportunities waiting for you at T.I.P. Quezon City.</p>
+    <button class="enter" onclick="enterCatalog()">Open Catalog</button>
+  </div>
+</div>
+
+<header class="top">
+  <div class="logo"><div class="logoMark">RSO</div><div class="logoText"><b>RSO Catalog</b><span>Student Life Fair 2026 · PIXARVERSE</span></div></div>
+  <div class="topActions">
+    <button class="iconBtn" title="Search organizations" onclick="toggleDrawer()">⌕</button>
+    <button class="iconBtn hideMobile" title="Page thumbnails" onclick="toggleThumbs()">▦</button>
+    <button class="iconBtn" title="Table of contents" onclick="toggleDrawer()">☰</button>
+    <button class="iconBtn" title="Fullscreen" onclick="fullscreen()">⛶</button>
+  </div>
+</header>
+
+<div class="stage">
+  <nav class="side">
+    <button class="active" title="Catalog" onclick="first()">⌂</button>
+    <button title="Contents" onclick="toggleDrawer()">☰</button>
+    <button title="Thumbnails" onclick="toggleThumbs()">▦</button>
+    <button title="Previous page" onclick="prev()">‹</button>
+    <button title="Next page" onclick="next()">›</button>
+  </nav>
+
+  <main class="viewer" id="viewer">
+    <div class="title"><div class="eyebrow">Recognized Student Organizations</div><h1>Student Life Fair 2026</h1><p>PIXARVERSE · Technological Institute of the Philippines — Quezon City</p></div>
+    <div id="bookWrap"><div id="book"><div class="loading"><div class="loaderRing"></div>Preparing your catalog…</div></div></div>
+    <div class="bottom">
+      <button onclick="first()">«</button><button onclick="prev()">‹</button><div class="counter" id="counter">Loading…</div><button onclick="next()">›</button><button onclick="last()">»</button>
+      <div class="sep"></div><button onclick="zoom(-1)">−</button><button onclick="zoom(1)">＋</button>
+    </div>
+  </main>
+</div>
+
+<div class="backdrop" id="backdrop" onclick="closePanels()"></div>
+<aside class="drawer" id="drawer">
+  <h2>Explore RSOs</h2><div class="sub">Search and jump directly to an organization.</div>
+  <input class="search" id="search" placeholder="Search organization…" oninput="renderOrgList()">
+  <div class="filters"><button class="filter active" data-cat="all" onclick="setFilter('all')">All</button><button class="filter" data-cat="academic" onclick="setFilter('academic')">Academic</button><button class="filter" data-cat="nonacademic" onclick="setFilter('nonacademic')">Non-Academic</button></div>
+  <div id="orgList"></div>
+</aside>
+
+<aside class="thumbs" id="thumbs"><div class="thumbsHead"><b>Pages</b><button class="iconBtn" onclick="toggleThumbs()">×</button></div><div class="thumbGrid" id="thumbGrid"></div></aside>
+
+<script>
+const orgs=[
+["ACADEMIC","ACE-Q","Abstract Combination with Emotional Quotient",3],["ACADEMIC","ACIP","American Concrete Institute Philippines",4],
+["ACADEMIC","ACM","Association for Computing Machinery",5],["ACADEMIC","AWS","Amazon Web Service — Student Builder Group",6],
+["ACADEMIC","ICpEP.SE","Institute of Computer Engineers of the Philippines Student Edition",7],["ACADEMIC","IEEE","Institute of Electrical and Electronics Engineers — T.I.P. Student Branch",8],
+["ACADEMIC","IECEP","Institute of Electronics Engineers of the Philippines",9],["ACADEMIC","IIEE","Institute of Integrated Electrical Engineers",10],
+["ACADEMIC","JDSAAP","Junior Data Science & Artificial Intelligence Association of the Philippines",11],["ACADEMIC","JFINEX","Junior Financial Executives",12],
+["ACADEMIC","JISSA","Junior Information Systems Security Association",13],["ACADEMIC","JMA","Junior Marketing Association",14],
+["ACADEMIC","JPCS","Junior Philippine Computer Society",15],["ACADEMIC","JPIA","Junior Philippine Institute of Accountants",16],
+["ACADEMIC","JRPIA","Junior Philippine Institute of Architects",17],["ACADEMIC","LSMA","Logistics and Supply Management Association",18],
+["ACADEMIC","ORIENTS","Organization of Industrial Engineering Students",19],["ACADEMIC","PICE","Philippine Institute of Civil Engineers",20],
+["ACADEMIC","PSME","Philippine Society of Mechanical Engineers",21],["ACADEMIC","PSS","Political Science Society",22],
+["ACADEMIC","PSSE","Philippine Society of Sanitary Engineers",23],["ACADEMIC","UAPSA","United Architects of the Philippines Student Auxiliary",24],
+["ACADEMIC","YEC","Young Educators Club",25],["NONACADEMIC","Anime Holics","Anime Holics Organization",26],
+["NONACADEMIC","Career Center","Career Center Student Chapter",27],["NONACADEMIC","Inhinyera","Inhinyera",28],
+["NONACADEMIC","PayoPitongPitik","PayoPitongPitik Society",29],["NONACADEMIC","Society of Scholars","Society of Scholars",30],
+["NONACADEMIC","TIPSO","T.I.P. Sports Organization",31],["NONACADEMIC","T.I.P. Choral Society","T.I.P. Choral Society",32],
+["NONACADEMIC","Talents Guild","T.I.P. Talents Guild",33],["NONACADEMIC","Tanghalang Mithi","Tanghalang Mithi",34],
+["NONACADEMIC","Tempest Gaming Society","Tempest Gaming Society",35]
+];
+let pdf=null,flip=null,filter='all',zoomLevel=1,thumbCanvases=[];
+
+async function init(){
+ try{
+  const pdfjs=await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.min.mjs');
+  pdfjs.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.worker.min.mjs';
+  pdf=await pdfjs.getDocument('SLF-RSO-Catalog.pdf').promise;
+  const book=document.getElementById('book');book.innerHTML='';
+  const pages=[];
+  for(let i=1;i<=pdf.numPages;i++){
+   const el=document.createElement('div');el.className='page';
+   const c=document.createElement('canvas');el.appendChild(c);book.appendChild(el);
+   pages.push({el,c});renderPage(i,c);
+  }
+  const mobile=window.innerWidth<=700;
+  flip=new St.PageFlip(book,{
+   width:mobile?420:600,
+   height:mobile?600:780,
+   size:'stretch',
+   minWidth:260,maxWidth:900,
+   minHeight:360,maxHeight:1000,
+   maxShadowOpacity:.45,
+   showCover:true,
+   mobileScrollSupport:true,
+   flippingTime:650,
+   usePortrait:mobile,
+   drawShadow:true
+  });
+  flip.loadFromHTML(pages.map(p=>p.el));
+  flip.on('flip',e=>update(e.data+1));
+  update(1);
+  renderOrgList();renderThumbs();
+  window.addEventListener('resize',fit);
+  window.addEventListener('orientationchange',()=>setTimeout(fit,250));
+  setTimeout(fit,50);
+ }catch(e){document.getElementById('book').innerHTML='<div class="loading">Catalog could not be loaded. Keep this page and SLF-RSO-Catalog.pdf in the same folder.</div>';console.error(e)}
+}
+async function renderPage(n,c){
+ try{
+  const p=await pdf.getPage(n),v=p.getViewport({scale:1.45});
+  c.width=v.width;c.height=v.height;
+  await p.render({canvasContext:c.getContext('2d'),viewport:v}).promise;
+
+  // Keep PDF hyperlinks clickable even though the page itself is rendered to canvas.
+  const pageEl=c.parentElement;
+  pageEl.style.position='relative';
+  const annotations=await p.getAnnotations({intent:'display'});
+  annotations.forEach(a=>{
+   if(a.subtype!=='Link'||!a.url)return;
+   const r=v.convertToViewportRectangle(a.rect);
+   const left=Math.min(r[0],r[2]),top=Math.min(r[1],r[3]);
+   const width=Math.abs(r[2]-r[0]),height=Math.abs(r[3]-r[1]);
+   if(width<2||height<2)return;
+   const link=document.createElement('a');
+   link.href=a.url;link.target='_blank';link.rel='noopener noreferrer';
+   link.style.cssText='position:absolute;left:'+left+'px;top:'+top+'px;width:'+width+'px;height:'+height+'px;z-index:20;display:block;background:transparent;';
+   pageEl.appendChild(link);
+  });
+ }catch(e){}
+}
+async function renderThumbs(){
+ const grid=document.getElementById('thumbGrid');
+ for(let i=1;i<=pdf.numPages;i++){
+  const wrap=document.createElement('div');wrap.className='thumb';wrap.onclick=()=>{flip.turnToPage(i-1);toggleThumbs()};
+  const c=document.createElement('canvas');wrap.appendChild(c);const s=document.createElement('small');s.textContent=i;wrap.appendChild(s);grid.appendChild(wrap);
+  const p=await pdf.getPage(i),v=p.getViewport({scale:.28});c.width=v.width;c.height=v.height;p.render({canvasContext:c.getContext('2d'),viewport:v});
+ }
+}
+function update(n){document.getElementById('counter').textContent=`Page ${n} of ${pdf.numPages}`}
+function next(){flip?.flipNext()}function prev(){flip?.flipPrev()}function first(){flip?.turnToPage(0)}function last(){pdf&&flip?.turnToPage(pdf.numPages-1)}
+function go(n){flip?.turnToPage(n-1);closePanels()}
+function zoom(d){zoomLevel=Math.max(.85,Math.min(1.2,zoomLevel+d*.08));document.getElementById('bookWrap').style.transform=`scale(${zoomLevel})`}
+function fit(){
+ try{
+  if(!flip)return;
+  const mobile=window.innerWidth<=700;
+  const box=document.getElementById('bookWrap');
+  flip.updateState?.({
+   width:mobile?Math.min(560,box.clientWidth*.96):Math.min(900,box.clientWidth/2),
+   height:mobile?Math.min(760,window.innerHeight*.68):Math.min(1000,window.innerHeight*.75)
+  });
+ }catch(e){}
+}
+function fullscreen(){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.()}
+function toggleDrawer(){document.getElementById('drawer').classList.toggle('open');document.getElementById('backdrop').classList.toggle('open');if(document.getElementById('drawer').classList.contains('open'))document.getElementById('search').focus()}
+function toggleThumbs(){document.getElementById('thumbs').classList.toggle('open');document.getElementById('backdrop').classList.toggle('open')}
+function closePanels(){document.getElementById('drawer').classList.remove('open');document.getElementById('thumbs').classList.remove('open');document.getElementById('backdrop').classList.remove('open')}
+function setFilter(x){filter=x;document.querySelectorAll('.filter').forEach(b=>b.classList.toggle('active',b.dataset.cat===x));renderOrgList()}
+function renderOrgList(){
+ const q=(document.getElementById('search').value||'').toLowerCase();const list=document.getElementById('orgList');list.innerHTML='';
+ const data=orgs.filter(o=>(filter==='all'||o[0].toLowerCase()===filter)&&(`${o[1]} ${o[2]}`.toLowerCase().includes(q)));
+ let last='';
+ data.forEach(o=>{if(o[0]!==last){const sec=document.createElement('div');sec.className='section';sec.textContent=o[0]==='ACADEMIC'?'Academic Organizations':'Non-Academic Organizations';list.appendChild(sec);last=o[0]}
+ const d=document.createElement('div');d.className='org';d.onclick=()=>go(o[3]);d.innerHTML=`<b>${o[1]}</b><span>${o[2]}</span>`;list.appendChild(d)});
+ if(!data.length)list.innerHTML='<div style="color:#777;font-size:11px;padding:15px 8px">No organization found.</div>';
+}
+function enterCatalog(){document.getElementById('intro').classList.add('hide');}
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight')next();if(e.key==='ArrowLeft')prev();if(e.key==='Escape')closePanels();if(e.key==='f'||e.key==='F')fullscreen()});
+setTimeout(()=>document.getElementById('intro').classList.add('hide'),2200);
+init();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RSO Catalog 2026 — Student Life Fair</title>
+<meta name="description" content="Recognized Student Organizations Catalog — Student Life Fair 2026: PIXARVERSE">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+ --bg:#0b0b0d;--panel:#141417;--panel2:#1b1b20;--line:rgba(255,255,255,.10);
+ --text:#f7f5ef;--muted:#a3a3a8;--gold:#d7b54a;--gold2:#f1d77a;
+ --paper:#fff;--shadow:0 30px 100px rgba(0,0,0,.55);
+}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif}
+body{overflow:hidden;background:
+ radial-gradient(circle at 18% 10%,rgba(215,181,74,.10),transparent 25%),
+ radial-gradient(circle at 85% 80%,rgba(120,100,220,.08),transparent 28%),
+ #0b0b0d}
+button,input{font:inherit}.top{height:68px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;border-bottom:1px solid var(--line);background:rgba(11,11,13,.88);backdrop-filter:blur(20px);position:fixed;inset:0 0 auto;z-index:100}
+.logo{display:flex;align-items:center;gap:12px}.logoMark{width:38px;height:38px;border:1px solid var(--gold);border-radius:11px;display:grid;place-items:center;color:var(--gold2);font-weight:800;font-size:10px;letter-spacing:.08em}.logoText b{display:block;font-size:12px;letter-spacing:.16em;text-transform:uppercase}.logoText span{display:block;color:#8d8d92;font-size:10px;margin-top:2px}
+.topActions{display:flex;gap:6px}.iconBtn{height:38px;min-width:38px;border:1px solid var(--line);background:rgba(255,255,255,.045);color:#eee;border-radius:10px;cursor:pointer}.iconBtn:hover{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.2)}
+.stage{position:fixed;inset:68px 0 0;display:flex}
+.side{width:72px;border-right:1px solid var(--line);background:rgba(12,12,14,.76);display:flex;flex-direction:column;align-items:center;padding:13px 8px;gap:8px;z-index:30}
+.side button{width:50px;height:50px;border:0;border-radius:12px;background:transparent;color:#8f8f95;cursor:pointer;font-size:17px}.side button:hover,.side button.active{background:rgba(215,181,74,.10);color:var(--gold2)}
+.viewer{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;padding:22px 30px 66px}
+.title{position:absolute;top:18px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none}.title .eyebrow{font-size:9px;letter-spacing:.25em;color:var(--gold2);text-transform:uppercase;font-weight:700}.title h1{font:700 22px "Playfair Display",serif;margin:4px 0}.title p{font-size:10px;color:#777;margin:0}
+#bookWrap{width:min(1220px,88vw);height:min(77vh,820px);display:flex;align-items:center;justify-content:center;transition:.2s}
+#book{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.page{background:#fff;overflow:hidden}.page canvas{display:block;width:100%;height:100%;background:#fff}
+.loading{color:#aaa;font-size:13px;text-align:center}.loaderRing{width:40px;height:40px;border:2px solid #333;border-top-color:var(--gold2);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}@keyframes spin{to{transform:rotate(360deg)}}
+.bottom{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;background:rgba(20,20,23,.92);border:1px solid var(--line);border-radius:14px;padding:5px 7px;box-shadow:0 10px 30px rgba(0,0,0,.35);z-index:20}
+.bottom button{border:0;background:transparent;color:#eee;border-radius:9px;height:34px;min-width:34px;cursor:pointer}.bottom button:hover{background:rgba(255,255,255,.09)}.counter{min-width:90px;text-align:center;color:#aaa;font-size:11px}.sep{height:22px;width:1px;background:var(--line)}
+.thumbs{position:fixed;right:0;top:68px;bottom:0;width:178px;background:rgba(14,14,16,.97);border-left:1px solid var(--line);transform:translateX(100%);transition:.25s;z-index:80;padding:15px 12px;overflow:auto}.thumbs.open{transform:translateX(0)}.thumbsHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.thumbsHead b{font-size:11px}.thumbGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.thumb{background:#222;border:1px solid transparent;border-radius:6px;overflow:hidden;cursor:pointer;padding:2px}.thumb:hover,.thumb.active{border-color:var(--gold)}.thumb canvas{width:100%;display:block}.thumb small{display:block;padding:4px;color:#aaa;font-size:8px;text-align:center}
+.drawer{position:fixed;top:68px;bottom:0;left:72px;width:min(390px,90vw);background:rgba(17,17,20,.98);border-right:1px solid var(--line);transform:translateX(-105%);transition:.25s;z-index:80;box-shadow:20px 0 60px rgba(0,0,0,.35);overflow:auto;padding:20px}.drawer.open{transform:translateX(0)}
+.drawer h2{font:700 27px "Playfair Display",serif;margin:4px 0}.drawer .sub{color:#888;font-size:11px;margin-bottom:16px}.search{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:#0f0f12;color:#fff;outline:none}.filters{display:flex;gap:6px;margin:10px 0;flex-wrap:wrap}.filter{border:1px solid var(--line);background:#151519;color:#aaa;border-radius:99px;padding:6px 9px;font-size:9px;cursor:pointer}.filter.active{color:var(--gold2);border-color:rgba(215,181,74,.45);background:rgba(215,181,74,.08)}
+.org{padding:11px 9px;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer}.org:hover{background:rgba(255,255,255,.035)}.org b{font-size:11px;line-height:1.3;display:block}.org span{font-size:9px;color:#777}.section{font-size:9px;color:var(--gold2);letter-spacing:.18em;text-transform:uppercase;font-weight:700;padding:17px 8px 7px}
+.backdrop{position:fixed;inset:68px 0 0;background:rgba(0,0,0,.48);z-index:70;display:none}.backdrop.open{display:block}
+.coverIntro{position:fixed;inset:0;background:#0b0b0d;z-index:200;display:flex;align-items:center;justify-content:center;transition:opacity .65s,visibility .65s}.coverIntro.hide{opacity:0;visibility:hidden;pointer-events:none}
+.coverCard{text-align:center;width:min(650px,88vw);padding:30px}.coverLine{height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:25px 0}.coverIntro .eyebrow{color:var(--gold2);font-size:10px;letter-spacing:.3em;text-transform:uppercase}.coverIntro h2{font:700 clamp(38px,7vw,76px)/.95 "Playfair Display",serif;margin:13px 0}.coverIntro p{color:#aaa;font-size:12px;line-height:1.7}.enter{margin-top:20px;border:1px solid rgba(215,181,74,.6);background:linear-gradient(135deg,#b38b23,#e7cc66);color:#17130a;border-radius:10px;padding:12px 22px;font-weight:800;font-size:11px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+@media(max-width:800px){.side{width:58px}.side button{width:42px;height:42px}.drawer{left:58px}.viewer{padding:30px 8px 60px}.title h1{font-size:18px}.title p{display:none}.top{padding:0 12px}.topActions .hideMobile{display:none}#bookWrap{width:94vw;height:72vh}.thumbs{width:150px}}
+@media(max-width:520px){.logoText span{display:none}.logoText b{font-size:10px}.top{height:60px}.stage{inset:60px 0 0}.drawer,.thumbs{top:60px}.backdrop{inset:60px 0 0}.side{display:none}.drawer{left:0}.title{top:12px}.viewer{padding-top:48px}}
+
+@media(max-width:700px){
+  body{overflow:hidden}
+  .top{height:58px;padding:0 10px}
+  .stage{inset:58px 0 0}
+  .viewer{
+    padding:92px 2px 64px;
+    overflow:hidden;
+    justify-content:flex-start;
+  }
+  .title{
+    top:10px;
+    width:94vw;
+    z-index:2;
+  }
+  .title h1{font-size:16px;margin-top:7px}
+  .title p{font-size:9px}
+  #bookWrap{
+    width:96vw;
+    height:calc(100vh - 230px);
+    min-height:330px;
+    max-height:620px;
+    margin:0 auto;
+    z-index:1;
+  }
+  #book{width:100%;height:100%}
+  .bottom{bottom:7px;gap:3px;padding:4px 5px;z-index:20}
+  .bottom button{min-width:34px;height:34px}
+  .counter{min-width:78px;font-size:10px}
+  .thumbs{top:58px}
+  .drawer{top:58px}
+}
+
+</style>
+</head>
+<body>
+<div class="coverIntro" id="intro">
+  <div class="coverCard">
+    <div class="eyebrow">Recognized Student Organizations</div>
+    <div class="coverLine"></div>
+    <h2>Student Life Fair<br>2026</h2>
+    <p>PIXARVERSE · RSO CATALOG</p>
+    <p>Explore the organizations, communities, and opportunities waiting for you at T.I.P. Quezon City.</p>
+    <button class="enter" onclick="enterCatalog()">Open Catalog</button>
+  </div>
+</div>
+
+<header class="top">
+  <div class="logo"><div class="logoMark">RSO</div><div class="logoText"><b>RSO Catalog</b><span>Student Life Fair 2026 · PIXARVERSE</span></div></div>
+  <div class="topActions">
+    <button class="iconBtn" title="Search organizations" onclick="toggleDrawer()">⌕</button>
+    <button class="iconBtn hideMobile" title="Page thumbnails" onclick="toggleThumbs()">▦</button>
+    <button class="iconBtn" title="Table of contents" onclick="toggleDrawer()">☰</button>
+    <button class="iconBtn" title="Fullscreen" onclick="fullscreen()">⛶</button>
+  </div>
+</header>
+
+<div class="stage">
+  <nav class="side">
+    <button class="active" title="Catalog" onclick="first()">⌂</button>
+    <button title="Contents" onclick="toggleDrawer()">☰</button>
+    <button title="Thumbnails" onclick="toggleThumbs()">▦</button>
+    <button title="Previous page" onclick="prev()">‹</button>
+    <button title="Next page" onclick="next()">›</button>
+  </nav>
+
+  <main class="viewer" id="viewer">
+    <div class="title"><div class="eyebrow">Recognized Student Organizations</div><h1>Student Life Fair 2026</h1><p>PIXARVERSE · Technological Institute of the Philippines — Quezon City</p></div>
+    <div id="bookWrap"><div id="book"><div class="loading"><div class="loaderRing"></div>Preparing your catalog…</div></div></div>
+    <div class="bottom">
+      <button onclick="first()">«</button><button onclick="prev()">‹</button><div class="counter" id="counter">Loading…</div><button onclick="next()">›</button><button onclick="last()">»</button>
+      <div class="sep"></div><button onclick="zoom(-1)">−</button><button onclick="zoom(1)">＋</button>
+    </div>
+  </main>
+</div>
+
+<div class="backdrop" id="backdrop" onclick="closePanels()"></div>
+<aside class="drawer" id="drawer">
+  <h2>Explore RSOs</h2><div class="sub">Search and jump directly to an organization.</div>
+  <input class="search" id="search" placeholder="Search organization…" oninput="renderOrgList()">
+  <div class="filters"><button class="filter active" data-cat="all" onclick="setFilter('all')">All</button><button class="filter" data-cat="academic" onclick="setFilter('academic')">Academic</button><button class="filter" data-cat="nonacademic" onclick="setFilter('nonacademic')">Non-Academic</button></div>
+  <div id="orgList"></div>
+</aside>
+
+<aside class="thumbs" id="thumbs"><div class="thumbsHead"><b>Pages</b><button class="iconBtn" onclick="toggleThumbs()">×</button></div><div class="thumbGrid" id="thumbGrid"></div></aside>
+
+<script>
+const orgs=[
+["ACADEMIC","ACE-Q","Abstract Combination with Emotional Quotient",3],["ACADEMIC","ACIP","American Concrete Institute Philippines",4],
+["ACADEMIC","ACM","Association for Computing Machinery",5],["ACADEMIC","AWS","Amazon Web Service — Student Builder Group",6],
+["ACADEMIC","ICpEP.SE","Institute of Computer Engineers of the Philippines Student Edition",7],["ACADEMIC","IEEE","Institute of Electrical and Electronics Engineers — T.I.P. Student Branch",8],
+["ACADEMIC","IECEP","Institute of Electronics Engineers of the Philippines",9],["ACADEMIC","IIEE","Institute of Integrated Electrical Engineers",10],
+["ACADEMIC","JDSAAP","Junior Data Science & Artificial Intelligence Association of the Philippines",11],["ACADEMIC","JFINEX","Junior Financial Executives",12],
+["ACADEMIC","JISSA","Junior Information Systems Security Association",13],["ACADEMIC","JMA","Junior Marketing Association",14],
+["ACADEMIC","JPCS","Junior Philippine Computer Society",15],["ACADEMIC","JPIA","Junior Philippine Institute of Accountants",16],
+["ACADEMIC","JRPIA","Junior Philippine Institute of Architects",17],["ACADEMIC","LSMA","Logistics and Supply Management Association",18],
+["ACADEMIC","ORIENTS","Organization of Industrial Engineering Students",19],["ACADEMIC","PICE","Philippine Institute of Civil Engineers",20],
+["ACADEMIC","PSME","Philippine Society of Mechanical Engineers",21],["ACADEMIC","PSS","Political Science Society",22],
+["ACADEMIC","PSSE","Philippine Society of Sanitary Engineers",23],["ACADEMIC","UAPSA","United Architects of the Philippines Student Auxiliary",24],
+["ACADEMIC","YEC","Young Educators Club",25],["NONACADEMIC","Anime Holics","Anime Holics Organization",26],
+["NONACADEMIC","Career Center","Career Center Student Chapter",27],["NONACADEMIC","Inhinyera","Inhinyera",28],
+["NONACADEMIC","PayoPitongPitik","PayoPitongPitik Society",29],["NONACADEMIC","Society of Scholars","Society of Scholars",30],
+["NONACADEMIC","TIPSO","T.I.P. Sports Organization",31],["NONACADEMIC","T.I.P. Choral Society","T.I.P. Choral Society",32],
+["NONACADEMIC","Talents Guild","T.I.P. Talents Guild",33],["NONACADEMIC","Tanghalang Mithi","Tanghalang Mithi",34],
+["NONACADEMIC","Tempest Gaming Society","Tempest Gaming Society",35]
+];
+let pdf=null,flip=null,filter='all',zoomLevel=1,thumbCanvases=[];
+
+async function init(){
+ try{
+  const pdfjs=await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.min.mjs');
+  pdfjs.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.worker.min.mjs';
+  pdf=await pdfjs.getDocument('SLF-RSO-Catalog.pdf').promise;
+  const book=document.getElementById('book');book.innerHTML='';
+  const pages=[];
+  for(let i=1;i<=pdf.numPages;i++){
+   const el=document.createElement('div');el.className='page';
+   const c=document.createElement('canvas');el.appendChild(c);book.appendChild(el);
+   pages.push({el,c});renderPage(i,c);
+  }
+  const mobile=window.innerWidth<=700;
+  flip=new St.PageFlip(book,{
+   width:mobile?420:600,
+   height:mobile?600:780,
+   size:'stretch',
+   minWidth:260,maxWidth:900,
+   minHeight:360,maxHeight:1000,
+   maxShadowOpacity:.45,
+   showCover:true,
+   mobileScrollSupport:true,
+   flippingTime:650,
+   usePortrait:mobile,
+   drawShadow:true
+  });
+  flip.loadFromHTML(pages.map(p=>p.el));
+  flip.on('flip',e=>update(e.data+1));
+  update(1);
+  renderOrgList();renderThumbs();
+  window.addEventListener('resize',fit);
+  window.addEventListener('orientationchange',()=>setTimeout(fit,250));
+  setTimeout(fit,50);
+ }catch(e){document.getElementById('book').innerHTML='<div class="loading">Catalog could not be loaded. Keep this page and SLF-RSO-Catalog.pdf in the same folder.</div>';console.error(e)}
+}
+async function renderPage(n,c){
+ try{
+  const p=await pdf.getPage(n),v=p.getViewport({scale:1.45});
+  c.width=v.width;c.height=v.height;
+  await p.render({canvasContext:c.getContext('2d'),viewport:v}).promise;
+
+  // Keep PDF hyperlinks clickable even though the page itself is rendered to canvas.
+  const pageEl=c.parentElement;
+  pageEl.style.position='relative';
+  const annotations=await p.getAnnotations({intent:'display'});
+  annotations.forEach(a=>{
+   if(a.subtype!=='Link'||!a.url)return;
+   const r=v.convertToViewportRectangle(a.rect);
+   const left=Math.min(r[0],r[2]),top=Math.min(r[1],r[3]);
+   const width=Math.abs(r[2]-r[0]),height=Math.abs(r[3]-r[1]);
+   if(width<2||height<2)return;
+   const link=document.createElement('a');
+   link.href=a.url;link.target='_blank';link.rel='noopener noreferrer';
+   link.style.cssText='position:absolute;left:'+left+'px;top:'+top+'px;width:'+width+'px;height:'+height+'px;z-index:20;display:block;background:transparent;';
+   pageEl.appendChild(link);
+  });
+ }catch(e){}
+}
+async function renderThumbs(){
+ const grid=document.getElementById('thumbGrid');
+ for(let i=1;i<=pdf.numPages;i++){
+  const wrap=document.createElement('div');wrap.className='thumb';wrap.onclick=()=>{flip.turnToPage(i-1);toggleThumbs()};
+  const c=document.createElement('canvas');wrap.appendChild(c);const s=document.createElement('small');s.textContent=i;wrap.appendChild(s);grid.appendChild(wrap);
+  const p=await pdf.getPage(i),v=p.getViewport({scale:.28});c.width=v.width;c.height=v.height;p.render({canvasContext:c.getContext('2d'),viewport:v});
+ }
+}
+function update(n){document.getElementById('counter').textContent=`Page ${n} of ${pdf.numPages}`}
+function next(){flip?.flipNext()}function prev(){flip?.flipPrev()}function first(){flip?.turnToPage(0)}function last(){pdf&&flip?.turnToPage(pdf.numPages-1)}
+function go(n){flip?.turnToPage(n-1);closePanels()}
+function zoom(d){zoomLevel=Math.max(.85,Math.min(1.2,zoomLevel+d*.08));document.getElementById('bookWrap').style.transform=`scale(${zoomLevel})`}
+function fit(){
+ try{
+  if(!flip)return;
+  const mobile=window.innerWidth<=700;
+  const box=document.getElementById('bookWrap');
+  flip.updateState?.({
+   width:mobile?Math.min(560,box.clientWidth*.96):Math.min(900,box.clientWidth/2),
+   height:mobile?Math.min(760,window.innerHeight*.68):Math.min(1000,window.innerHeight*.75)
+  });
+ }catch(e){}
+}
+function fullscreen(){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.()}
+function toggleDrawer(){document.getElementById('drawer').classList.toggle('open');document.getElementById('backdrop').classList.toggle('open');if(document.getElementById('drawer').classList.contains('open'))document.getElementById('search').focus()}
+function toggleThumbs(){document.getElementById('thumbs').classList.toggle('open');document.getElementById('backdrop').classList.toggle('open')}
+function closePanels(){document.getElementById('drawer').classList.remove('open');document.getElementById('thumbs').classList.remove('open');document.getElementById('backdrop').classList.remove('open')}
+function setFilter(x){filter=x;document.querySelectorAll('.filter').forEach(b=>b.classList.toggle('active',b.dataset.cat===x));renderOrgList()}
+function renderOrgList(){
+ const q=(document.getElementById('search').value||'').toLowerCase();const list=document.getElementById('orgList');list.innerHTML='';
+ const data=orgs.filter(o=>(filter==='all'||o[0].toLowerCase()===filter)&&(`${o[1]} ${o[2]}`.toLowerCase().includes(q)));
+ let last='';
+ data.forEach(o=>{if(o[0]!==last){const sec=document.createElement('div');sec.className='section';sec.textContent=o[0]==='ACADEMIC'?'Academic Organizations':'Non-Academic Organizations';list.appendChild(sec);last=o[0]}
+ const d=document.createElement('div');d.className='org';d.onclick=()=>go(o[3]);d.innerHTML=`<b>${o[1]}</b><span>${o[2]}</span>`;list.appendChild(d)});
+ if(!data.length)list.innerHTML='<div style="color:#777;font-size:11px;padding:15px 8px">No organization found.</div>';
+}
+function enterCatalog(){document.getElementById('intro').classList.add('hide');}
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight')next();if(e.key==='ArrowLeft')prev();if(e.key==='Escape')closePanels();if(e.key==='f'||e.key==='F')fullscreen()});
+setTimeout(()=>document.getElementById('intro').classList.add('hide'),2200);
+init();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RSO Catalog 2026 — Student Life Fair</title>
+<meta name="description" content="Recognized Student Organizations Catalog — Student Life Fair 2026: PIXARVERSE">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+ --bg:#0b0b0d;--panel:#141417;--panel2:#1b1b20;--line:rgba(255,255,255,.10);
+ --text:#f7f5ef;--muted:#a3a3a8;--gold:#d7b54a;--gold2:#f1d77a;
+ --paper:#fff;--shadow:0 30px 100px rgba(0,0,0,.55);
+}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif}
+body{overflow:hidden;background:
+ radial-gradient(circle at 18% 10%,rgba(215,181,74,.10),transparent 25%),
+ radial-gradient(circle at 85% 80%,rgba(120,100,220,.08),transparent 28%),
+ #0b0b0d}
+button,input{font:inherit}.top{height:68px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;border-bottom:1px solid var(--line);background:rgba(11,11,13,.88);backdrop-filter:blur(20px);position:fixed;inset:0 0 auto;z-index:100}
+.logo{display:flex;align-items:center;gap:12px}.logoMark{width:38px;height:38px;border:1px solid var(--gold);border-radius:11px;display:grid;place-items:center;color:var(--gold2);font-weight:800;font-size:10px;letter-spacing:.08em}.logoText b{display:block;font-size:12px;letter-spacing:.16em;text-transform:uppercase}.logoText span{display:block;color:#8d8d92;font-size:10px;margin-top:2px}
+.topActions{display:flex;gap:6px}.iconBtn{height:38px;min-width:38px;border:1px solid var(--line);background:rgba(255,255,255,.045);color:#eee;border-radius:10px;cursor:pointer}.iconBtn:hover{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.2)}
+.stage{position:fixed;inset:68px 0 0;display:flex}
+.side{width:72px;border-right:1px solid var(--line);background:rgba(12,12,14,.76);display:flex;flex-direction:column;align-items:center;padding:13px 8px;gap:8px;z-index:30}
+.side button{width:50px;height:50px;border:0;border-radius:12px;background:transparent;color:#8f8f95;cursor:pointer;font-size:17px}.side button:hover,.side button.active{background:rgba(215,181,74,.10);color:var(--gold2)}
+.viewer{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;padding:22px 30px 66px}
+.title{position:absolute;top:18px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none}.title .eyebrow{font-size:9px;letter-spacing:.25em;color:var(--gold2);text-transform:uppercase;font-weight:700}.title h1{font:700 22px "Playfair Display",serif;margin:4px 0}.title p{font-size:10px;color:#777;margin:0}
+#bookWrap{width:min(1220px,88vw);height:min(77vh,820px);display:flex;align-items:center;justify-content:center;transition:.2s}
+#book{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.page{background:#fff;overflow:hidden}.page canvas{display:block;width:100%;height:100%;background:#fff}
+.loading{color:#aaa;font-size:13px;text-align:center}.loaderRing{width:40px;height:40px;border:2px solid #333;border-top-color:var(--gold2);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}@keyframes spin{to{transform:rotate(360deg)}}
+.bottom{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;background:rgba(20,20,23,.92);border:1px solid var(--line);border-radius:14px;padding:5px 7px;box-shadow:0 10px 30px rgba(0,0,0,.35);z-index:20}
+.bottom button{border:0;background:transparent;color:#eee;border-radius:9px;height:34px;min-width:34px;cursor:pointer}.bottom button:hover{background:rgba(255,255,255,.09)}.counter{min-width:90px;text-align:center;color:#aaa;font-size:11px}.sep{height:22px;width:1px;background:var(--line)}
+.thumbs{position:fixed;right:0;top:68px;bottom:0;width:178px;background:rgba(14,14,16,.97);border-left:1px solid var(--line);transform:translateX(100%);transition:.25s;z-index:80;padding:15px 12px;overflow:auto}.thumbs.open{transform:translateX(0)}.thumbsHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.thumbsHead b{font-size:11px}.thumbGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.thumb{background:#222;border:1px solid transparent;border-radius:6px;overflow:hidden;cursor:pointer;padding:2px}.thumb:hover,.thumb.active{border-color:var(--gold)}.thumb canvas{width:100%;display:block}.thumb small{display:block;padding:4px;color:#aaa;font-size:8px;text-align:center}
+.drawer{position:fixed;top:68px;bottom:0;left:72px;width:min(390px,90vw);background:rgba(17,17,20,.98);border-right:1px solid var(--line);transform:translateX(-105%);transition:.25s;z-index:80;box-shadow:20px 0 60px rgba(0,0,0,.35);overflow:auto;padding:20px}.drawer.open{transform:translateX(0)}
+.drawer h2{font:700 27px "Playfair Display",serif;margin:4px 0}.drawer .sub{color:#888;font-size:11px;margin-bottom:16px}.search{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:#0f0f12;color:#fff;outline:none}.filters{display:flex;gap:6px;margin:10px 0;flex-wrap:wrap}.filter{border:1px solid var(--line);background:#151519;color:#aaa;border-radius:99px;padding:6px 9px;font-size:9px;cursor:pointer}.filter.active{color:var(--gold2);border-color:rgba(215,181,74,.45);background:rgba(215,181,74,.08)}
+.org{padding:11px 9px;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer}.org:hover{background:rgba(255,255,255,.035)}.org b{font-size:11px;line-height:1.3;display:block}.org span{font-size:9px;color:#777}.section{font-size:9px;color:var(--gold2);letter-spacing:.18em;text-transform:uppercase;font-weight:700;padding:17px 8px 7px}
+.backdrop{position:fixed;inset:68px 0 0;background:rgba(0,0,0,.48);z-index:70;display:none}.backdrop.open{display:block}
+.coverIntro{position:fixed;inset:0;background:#0b0b0d;z-index:200;display:flex;align-items:center;justify-content:center;transition:opacity .65s,visibility .65s}.coverIntro.hide{opacity:0;visibility:hidden;pointer-events:none}
+.coverCard{text-align:center;width:min(650px,88vw);padding:30px}.coverLine{height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:25px 0}.coverIntro .eyebrow{color:var(--gold2);font-size:10px;letter-spacing:.3em;text-transform:uppercase}.coverIntro h2{font:700 clamp(38px,7vw,76px)/.95 "Playfair Display",serif;margin:13px 0}.coverIntro p{color:#aaa;font-size:12px;line-height:1.7}.enter{margin-top:20px;border:1px solid rgba(215,181,74,.6);background:linear-gradient(135deg,#b38b23,#e7cc66);color:#17130a;border-radius:10px;padding:12px 22px;font-weight:800;font-size:11px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+@media(max-width:800px){.side{width:58px}.side button{width:42px;height:42px}.drawer{left:58px}.viewer{padding:30px 8px 60px}.title h1{font-size:18px}.title p{display:none}.top{padding:0 12px}.topActions .hideMobile{display:none}#bookWrap{width:94vw;height:72vh}.thumbs{width:150px}}
+@media(max-width:520px){.logoText span{display:none}.logoText b{font-size:10px}.top{height:60px}.stage{inset:60px 0 0}.drawer,.thumbs{top:60px}.backdrop{inset:60px 0 0}.side{display:none}.drawer{left:0}.title{top:12px}.viewer{padding-top:48px}}
+
+@media(max-width:700px){
+  body{overflow:hidden}
+  .top{height:58px;padding:0 10px}
+  .stage{inset:58px 0 0}
+  .viewer{
+    padding:92px 2px 64px;
+    overflow:hidden;
+    justify-content:flex-start;
+  }
+  .title{
+    top:10px;
+    width:94vw;
+    z-index:2;
+  }
+  .title h1{font-size:16px;margin-top:7px}
+  .title p{font-size:9px}
+  #bookWrap{
+    width:96vw;
+    height:calc(100vh - 230px);
+    min-height:330px;
+    max-height:620px;
+    margin:0 auto;
+    z-index:1;
+  }
+  #book{width:100%;height:100%}
+  .bottom{bottom:7px;gap:3px;padding:4px 5px;z-index:20}
+  .bottom button{min-width:34px;height:34px}
+  .counter{min-width:78px;font-size:10px}
+  .thumbs{top:58px}
+  .drawer{top:58px}
+}
+
+</style>
+</head>
+<body>
+<div class="coverIntro" id="intro">
+  <div class="coverCard">
+    <div class="eyebrow">Recognized Student Organizations</div>
+    <div class="coverLine"></div>
+    <h2>Student Life Fair<br>2026</h2>
+    <p>PIXARVERSE · RSO CATALOG</p>
+    <p>Explore the organizations, communities, and opportunities waiting for you at T.I.P. Quezon City.</p>
+    <button class="enter" onclick="enterCatalog()">Open Catalog</button>
+  </div>
+</div>
+
+<header class="top">
+  <div class="logo"><div class="logoMark">RSO</div><div class="logoText"><b>RSO Catalog</b><span>Student Life Fair 2026 · PIXARVERSE</span></div></div>
+  <div class="topActions">
+    <button class="iconBtn" title="Search organizations" onclick="toggleDrawer()">⌕</button>
+    <button class="iconBtn hideMobile" title="Page thumbnails" onclick="toggleThumbs()">▦</button>
+    <button class="iconBtn" title="Table of contents" onclick="toggleDrawer()">☰</button>
+    <button class="iconBtn" title="Fullscreen" onclick="fullscreen()">⛶</button>
+  </div>
+</header>
+
+<div class="stage">
+  <nav class="side">
+    <button class="active" title="Catalog" onclick="first()">⌂</button>
+    <button title="Contents" onclick="toggleDrawer()">☰</button>
+    <button title="Thumbnails" onclick="toggleThumbs()">▦</button>
+    <button title="Previous page" onclick="prev()">‹</button>
+    <button title="Next page" onclick="next()">›</button>
+  </nav>
+
+  <main class="viewer" id="viewer">
+    <div class="title"><div class="eyebrow">Recognized Student Organizations</div><h1>Student Life Fair 2026</h1><p>PIXARVERSE · Technological Institute of the Philippines — Quezon City</p></div>
+    <div id="bookWrap"><div id="book"><div class="loading"><div class="loaderRing"></div>Preparing your catalog…</div></div></div>
+    <div class="bottom">
+      <button onclick="first()">«</button><button onclick="prev()">‹</button><div class="counter" id="counter">Loading…</div><button onclick="next()">›</button><button onclick="last()">»</button>
+      <div class="sep"></div><button onclick="zoom(-1)">−</button><button onclick="zoom(1)">＋</button>
+    </div>
+  </main>
+</div>
+
+<div class="backdrop" id="backdrop" onclick="closePanels()"></div>
+<aside class="drawer" id="drawer">
+  <h2>Explore RSOs</h2><div class="sub">Search and jump directly to an organization.</div>
+  <input class="search" id="search" placeholder="Search organization…" oninput="renderOrgList()">
+  <div class="filters"><button class="filter active" data-cat="all" onclick="setFilter('all')">All</button><button class="filter" data-cat="academic" onclick="setFilter('academic')">Academic</button><button class="filter" data-cat="nonacademic" onclick="setFilter('nonacademic')">Non-Academic</button></div>
+  <div id="orgList"></div>
+</aside>
+
+<aside class="thumbs" id="thumbs"><div class="thumbsHead"><b>Pages</b><button class="iconBtn" onclick="toggleThumbs()">×</button></div><div class="thumbGrid" id="thumbGrid"></div></aside>
+
+<script>
+const orgs=[
+["ACADEMIC","ACE-Q","Abstract Combination with Emotional Quotient",3],["ACADEMIC","ACIP","American Concrete Institute Philippines",4],
+["ACADEMIC","ACM","Association for Computing Machinery",5],["ACADEMIC","AWS","Amazon Web Service — Student Builder Group",6],
+["ACADEMIC","ICpEP.SE","Institute of Computer Engineers of the Philippines Student Edition",7],["ACADEMIC","IEEE","Institute of Electrical and Electronics Engineers — T.I.P. Student Branch",8],
+["ACADEMIC","IECEP","Institute of Electronics Engineers of the Philippines",9],["ACADEMIC","IIEE","Institute of Integrated Electrical Engineers",10],
+["ACADEMIC","JDSAAP","Junior Data Science & Artificial Intelligence Association of the Philippines",11],["ACADEMIC","JFINEX","Junior Financial Executives",12],
+["ACADEMIC","JISSA","Junior Information Systems Security Association",13],["ACADEMIC","JMA","Junior Marketing Association",14],
+["ACADEMIC","JPCS","Junior Philippine Computer Society",15],["ACADEMIC","JPIA","Junior Philippine Institute of Accountants",16],
+["ACADEMIC","JRPIA","Junior Philippine Institute of Architects",17],["ACADEMIC","LSMA","Logistics and Supply Management Association",18],
+["ACADEMIC","ORIENTS","Organization of Industrial Engineering Students",19],["ACADEMIC","PICE","Philippine Institute of Civil Engineers",20],
+["ACADEMIC","PSME","Philippine Society of Mechanical Engineers",21],["ACADEMIC","PSS","Political Science Society",22],
+["ACADEMIC","PSSE","Philippine Society of Sanitary Engineers",23],["ACADEMIC","UAPSA","United Architects of the Philippines Student Auxiliary",24],
+["ACADEMIC","YEC","Young Educators Club",25],["NONACADEMIC","Anime Holics","Anime Holics Organization",26],
+["NONACADEMIC","Career Center","Career Center Student Chapter",27],["NONACADEMIC","Inhinyera","Inhinyera",28],
+["NONACADEMIC","PayoPitongPitik","PayoPitongPitik Society",29],["NONACADEMIC","Society of Scholars","Society of Scholars",30],
+["NONACADEMIC","TIPSO","T.I.P. Sports Organization",31],["NONACADEMIC","T.I.P. Choral Society","T.I.P. Choral Society",32],
+["NONACADEMIC","Talents Guild","T.I.P. Talents Guild",33],["NONACADEMIC","Tanghalang Mithi","Tanghalang Mithi",34],
+["NONACADEMIC","Tempest Gaming Society","Tempest Gaming Society",35]
+];
+let pdf=null,flip=null,filter='all',zoomLevel=1,thumbCanvases=[];
+
+async function init(){
+ try{
+  const pdfjs=await import('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.min.mjs');
+  pdfjs.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.5.136/pdf.worker.min.mjs';
+  pdf=await pdfjs.getDocument('SLF-RSO-Catalog.pdf').promise;
+  const book=document.getElementById('book');book.innerHTML='';
+  const pages=[];
+  for(let i=1;i<=pdf.numPages;i++){
+   const el=document.createElement('div');el.className='page';
+   const c=document.createElement('canvas');el.appendChild(c);book.appendChild(el);
+   pages.push({el,c});renderPage(i,c);
+  }
+  const mobile=window.innerWidth<=700;
+  flip=new St.PageFlip(book,{
+   width:mobile?420:600,
+   height:mobile?600:780,
+   size:'stretch',
+   minWidth:260,maxWidth:900,
+   minHeight:360,maxHeight:1000,
+   maxShadowOpacity:.45,
+   showCover:true,
+   mobileScrollSupport:true,
+   flippingTime:650,
+   usePortrait:mobile,
+   drawShadow:true
+  });
+  flip.loadFromHTML(pages.map(p=>p.el));
+  flip.on('flip',e=>update(e.data+1));
+  update(1);
+  renderOrgList();renderThumbs();
+  window.addEventListener('resize',fit);
+  window.addEventListener('orientationchange',()=>setTimeout(fit,250));
+  setTimeout(fit,50);
+ }catch(e){document.getElementById('book').innerHTML='<div class="loading">Catalog could not be loaded. Keep this page and SLF-RSO-Catalog.pdf in the same folder.</div>';console.error(e)}
+}
+async function renderPage(n,c){
+ try{
+  const p=await pdf.getPage(n),v=p.getViewport({scale:1.45});
+  c.width=v.width;c.height=v.height;
+  await p.render({canvasContext:c.getContext('2d'),viewport:v}).promise;
+
+  // Keep PDF hyperlinks clickable even though the page itself is rendered to canvas.
+  const pageEl=c.parentElement;
+  pageEl.style.position='relative';
+  const annotations=await p.getAnnotations({intent:'display'});
+  annotations.forEach(a=>{
+   if(a.subtype!=='Link'||!a.url)return;
+   const r=v.convertToViewportRectangle(a.rect);
+   const left=Math.min(r[0],r[2]),top=Math.min(r[1],r[3]);
+   const width=Math.abs(r[2]-r[0]),height=Math.abs(r[3]-r[1]);
+   if(width<2||height<2)return;
+   const link=document.createElement('a');
+   link.href=a.url;link.target='_blank';link.rel='noopener noreferrer';
+   link.style.cssText='position:absolute;left:'+left+'px;top:'+top+'px;width:'+width+'px;height:'+height+'px;z-index:20;display:block;background:transparent;';
+   pageEl.appendChild(link);
+  });
+ }catch(e){}
+}
+async function renderThumbs(){
+ const grid=document.getElementById('thumbGrid');
+ for(let i=1;i<=pdf.numPages;i++){
+  const wrap=document.createElement('div');wrap.className='thumb';wrap.onclick=()=>{flip.turnToPage(i-1);toggleThumbs()};
+  const c=document.createElement('canvas');wrap.appendChild(c);const s=document.createElement('small');s.textContent=i;wrap.appendChild(s);grid.appendChild(wrap);
+  const p=await pdf.getPage(i),v=p.getViewport({scale:.28});c.width=v.width;c.height=v.height;p.render({canvasContext:c.getContext('2d'),viewport:v});
+ }
+}
+function update(n){document.getElementById('counter').textContent=`Page ${n} of ${pdf.numPages}`}
+function next(){flip?.flipNext()}function prev(){flip?.flipPrev()}function first(){flip?.turnToPage(0)}function last(){pdf&&flip?.turnToPage(pdf.numPages-1)}
+function go(n){flip?.turnToPage(n-1);closePanels()}
+function zoom(d){zoomLevel=Math.max(.85,Math.min(1.2,zoomLevel+d*.08));document.getElementById('bookWrap').style.transform=`scale(${zoomLevel})`}
+function fit(){
+ try{
+  if(!flip)return;
+  const mobile=window.innerWidth<=700;
+  const box=document.getElementById('bookWrap');
+  flip.updateState?.({
+   width:mobile?Math.min(560,box.clientWidth*.96):Math.min(900,box.clientWidth/2),
+   height:mobile?Math.min(760,window.innerHeight*.68):Math.min(1000,window.innerHeight*.75)
+  });
+ }catch(e){}
+}
+function fullscreen(){document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen?.()}
+function toggleDrawer(){document.getElementById('drawer').classList.toggle('open');document.getElementById('backdrop').classList.toggle('open');if(document.getElementById('drawer').classList.contains('open'))document.getElementById('search').focus()}
+function toggleThumbs(){document.getElementById('thumbs').classList.toggle('open');document.getElementById('backdrop').classList.toggle('open')}
+function closePanels(){document.getElementById('drawer').classList.remove('open');document.getElementById('thumbs').classList.remove('open');document.getElementById('backdrop').classList.remove('open')}
+function setFilter(x){filter=x;document.querySelectorAll('.filter').forEach(b=>b.classList.toggle('active',b.dataset.cat===x));renderOrgList()}
+function renderOrgList(){
+ const q=(document.getElementById('search').value||'').toLowerCase();const list=document.getElementById('orgList');list.innerHTML='';
+ const data=orgs.filter(o=>(filter==='all'||o[0].toLowerCase()===filter)&&(`${o[1]} ${o[2]}`.toLowerCase().includes(q)));
+ let last='';
+ data.forEach(o=>{if(o[0]!==last){const sec=document.createElement('div');sec.className='section';sec.textContent=o[0]==='ACADEMIC'?'Academic Organizations':'Non-Academic Organizations';list.appendChild(sec);last=o[0]}
+ const d=document.createElement('div');d.className='org';d.onclick=()=>go(o[3]);d.innerHTML=`<b>${o[1]}</b><span>${o[2]}</span>`;list.appendChild(d)});
+ if(!data.length)list.innerHTML='<div style="color:#777;font-size:11px;padding:15px 8px">No organization found.</div>';
+}
+function enterCatalog(){document.getElementById('intro').classList.add('hide');}
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight')next();if(e.key==='ArrowLeft')prev();if(e.key==='Escape')closePanels();if(e.key==='f'||e.key==='F')fullscreen()});
+setTimeout(()=>document.getElementById('intro').classList.add('hide'),2200);
+init();
+</script>
+<script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RSO Catalog 2026 — Student Life Fair</title>
+<meta name="description" content="Recognized Student Organizations Catalog — Student Life Fair 2026: PIXARVERSE">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+ --bg:#0b0b0d;--panel:#141417;--panel2:#1b1b20;--line:rgba(255,255,255,.10);
+ --text:#f7f5ef;--muted:#a3a3a8;--gold:#d7b54a;--gold2:#f1d77a;
+ --paper:#fff;--shadow:0 30px 100px rgba(0,0,0,.55);
+}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Inter,Arial,sans-serif}
+body{overflow:hidden;background:
+ radial-gradient(circle at 18% 10%,rgba(215,181,74,.10),transparent 25%),
+ radial-gradient(circle at 85% 80%,rgba(120,100,220,.08),transparent 28%),
+ #0b0b0d}
+button,input{font:inherit}.top{height:68px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;border-bottom:1px solid var(--line);background:rgba(11,11,13,.88);backdrop-filter:blur(20px);position:fixed;inset:0 0 auto;z-index:100}
+.logo{display:flex;align-items:center;gap:12px}.logoMark{width:38px;height:38px;border:1px solid var(--gold);border-radius:11px;display:grid;place-items:center;color:var(--gold2);font-weight:800;font-size:10px;letter-spacing:.08em}.logoText b{display:block;font-size:12px;letter-spacing:.16em;text-transform:uppercase}.logoText span{display:block;color:#8d8d92;font-size:10px;margin-top:2px}
+.topActions{display:flex;gap:6px}.iconBtn{height:38px;min-width:38px;border:1px solid var(--line);background:rgba(255,255,255,.045);color:#eee;border-radius:10px;cursor:pointer}.iconBtn:hover{background:rgba(255,255,255,.10);border-color:rgba(255,255,255,.2)}
+.stage{position:fixed;inset:68px 0 0;display:flex}
+.side{width:72px;border-right:1px solid var(--line);background:rgba(12,12,14,.76);display:flex;flex-direction:column;align-items:center;padding:13px 8px;gap:8px;z-index:30}
+.side button{width:50px;height:50px;border:0;border-radius:12px;background:transparent;color:#8f8f95;cursor:pointer;font-size:17px}.side button:hover,.side button.active{background:rgba(215,181,74,.10);color:var(--gold2)}
+.viewer{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;padding:22px 30px 66px}
+.title{position:absolute;top:18px;left:50%;transform:translateX(-50%);text-align:center;pointer-events:none}.title .eyebrow{font-size:9px;letter-spacing:.25em;color:var(--gold2);text-transform:uppercase;font-weight:700}.title h1{font:700 22px "Playfair Display",serif;margin:4px 0}.title p{font-size:10px;color:#777;margin:0}
+#bookWrap{width:min(1220px,88vw);height:min(77vh,820px);display:flex;align-items:center;justify-content:center;transition:.2s}
+#book{width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+.page{background:#fff;overflow:hidden}.page canvas{display:block;width:100%;height:100%;background:#fff}
+.loading{color:#aaa;font-size:13px;text-align:center}.loaderRing{width:40px;height:40px;border:2px solid #333;border-top-color:var(--gold2);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 12px}@keyframes spin{to{transform:rotate(360deg)}}
+.bottom{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;background:rgba(20,20,23,.92);border:1px solid var(--line);border-radius:14px;padding:5px 7px;box-shadow:0 10px 30px rgba(0,0,0,.35);z-index:20}
+.bottom button{border:0;background:transparent;color:#eee;border-radius:9px;height:34px;min-width:34px;cursor:pointer}.bottom button:hover{background:rgba(255,255,255,.09)}.counter{min-width:90px;text-align:center;color:#aaa;font-size:11px}.sep{height:22px;width:1px;background:var(--line)}
+.thumbs{position:fixed;right:0;top:68px;bottom:0;width:178px;background:rgba(14,14,16,.97);border-left:1px solid var(--line);transform:translateX(100%);transition:.25s;z-index:80;padding:15px 12px;overflow:auto}.thumbs.open{transform:translateX(0)}.thumbsHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.thumbsHead b{font-size:11px}.thumbGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.thumb{background:#222;border:1px solid transparent;border-radius:6px;overflow:hidden;cursor:pointer;padding:2px}.thumb:hover,.thumb.active{border-color:var(--gold)}.thumb canvas{width:100%;display:block}.thumb small{display:block;padding:4px;color:#aaa;font-size:8px;text-align:center}
+.drawer{position:fixed;top:68px;bottom:0;left:72px;width:min(390px,90vw);background:rgba(17,17,20,.98);border-right:1px solid var(--line);transform:translateX(-105%);transition:.25s;z-index:80;box-shadow:20px 0 60px rgba(0,0,0,.35);overflow:auto;padding:20px}.drawer.open{transform:translateX(0)}
+.drawer h2{font:700 27px "Playfair Display",serif;margin:4px 0}.drawer .sub{color:#888;font-size:11px;margin-bottom:16px}.search{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:#0f0f12;color:#fff;outline:none}.filters{display:flex;gap:6px;margin:10px 0;flex-wrap:wrap}.filter{border:1px solid var(--line);background:#151519;color:#aaa;border-radius:99px;padding:6px 9px;font-size:9px;cursor:pointer}.filter.active{color:var(--gold2);border-color:rgba(215,181,74,.45);background:rgba(215,181,74,.08)}
+.org{padding:11px 9px;border-bottom:1px solid rgba(255,255,255,.06);cursor:pointer}.org:hover{background:rgba(255,255,255,.035)}.org b{font-size:11px;line-height:1.3;display:block}.org span{font-size:9px;color:#777}.section{font-size:9px;color:var(--gold2);letter-spacing:.18em;text-transform:uppercase;font-weight:700;padding:17px 8px 7px}
+.backdrop{position:fixed;inset:68px 0 0;background:rgba(0,0,0,.48);z-index:70;display:none}.backdrop.open{display:block}
+.coverIntro{position:fixed;inset:0;background:#0b0b0d;z-index:200;display:flex;align-items:center;justify-content:center;transition:opacity .65s,visibility .65s}.coverIntro.hide{opacity:0;visibility:hidden;pointer-events:none}
+.coverCard{text-align:center;width:min(650px,88vw);padding:30px}.coverLine{height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);margin:25px 0}.coverIntro .eyebrow{color:var(--gold2);font-size:10px;letter-spacing:.3em;text-transform:uppercase}.coverIntro h2{font:700 clamp(38px,7vw,76px)/.95 "Playfair Display",serif;margin:13px 0}.coverIntro p{color:#aaa;font-size:12px;line-height:1.7}.enter{margin-top:20px;border:1px solid rgba(215,181,74,.6);background:linear-gradient(135deg,#b38b23,#e7cc66);color:#17130a;border-radius:10px;padding:12px 22px;font-weight:800;font-size:11px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
+@media(max-width:800px){.side{width:58px}.side button{width:42px;height:42px}.drawer{left:58px}.viewer{padding:30px 8px 60px}.title h1{font-size:18px}.title p{display:none}.top{padding:0 12px}.topActions .hideMobile{display:none}#bookWrap{width:94vw;height:72vh}.thumbs{width:150px}}
+@media(max-width:520px){.logoText span{display:none}.logoText b{font-size:10px}.top{height:60px}.stage{inset:60px 0 0}.drawer,.thumbs{top:60px}.backdrop{inset:60px 0 0}.side{display:none}.drawer{left:0}.title{top:12px}.viewer{padding-top:48px}}
+
+@media(max-width:700px){
+  body{overflow:hidden}
+  .top{height:58px;padding:0 10px}
+  .stage{inset:58px 0 0}
+  .viewer{
+    padding:92px 2px 64px;
+    overflow:hidden;
+    justify-content:flex-start;
+  }
+  .title{
+    top:10px;
+    width:94vw;
+    z-index:2;
+  }
+  .title h1{font-size:16px;margin-top:7px}
+  .title p{font-size:9px}
+  #bookWrap{
+    width:96vw;
+    height:calc(100vh - 230px);
+    min-height:330px;
+    max-height:620px;
+    margin:0 auto;
+    z-index:1;
+  }
+  #book{width:100%;height:100%}
+  .bottom{bottom:7px;gap:3px;padding:4px 5px;z-index:20}
   .bottom button{min-width:34px;height:34px}
   .counter{min-width:78px;font-size:10px}
   .thumbs{top:58px}
