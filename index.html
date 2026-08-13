@@ -23,6 +23,25 @@
 .coverIntro{position:fixed;inset:0;background:var(--navy);z-index:200;display:flex;align-items:center;justify-content:center;transition:opacity .65s,visibility .65s}.coverIntro.hide{opacity:0;visibility:hidden;pointer-events:none}.coverCard{text-align:center;width:min(650px,88vw);padding:30px}.coverLine{height:2px;background:var(--gold);margin:25px 0}.coverIntro .eyebrow{color:var(--gold);font-size:10px;letter-spacing:.3em;text-transform:uppercase}.coverIntro h2{font:700 clamp(38px,7vw,76px)/.95 "Playfair Display",serif;margin:13px 0;color:#fff}.coverIntro p{color:#D5DAE4;font-size:12px;line-height:1.7}.enter{margin-top:20px;border:1px solid var(--gold);background:var(--gold);color:var(--navy);border-radius:10px;padding:12px 22px;font-weight:800;font-size:11px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer}
 @media(max-width:800px){.side{width:58px}.side:before{display:none}.side button{width:42px;padding-left:0;text-align:center}.drawer{left:58px}.viewer{padding:30px 8px 60px}.title h1{font-size:18px}.title p{display:none}.top{padding:0 12px}.logo{min-width:190px}.logoMark{width:76px;height:48px}.logoText{width:66px;height:48px}.logoText img{width:43px;height:43px}.topTitle h1{font-size:20px}.topTitle .eyebrow{font-size:8px;letter-spacing:2px}.topTitle p{font-size:9px}.topActions .hideMobile{display:none}#bookWrap{width:94vw;height:72vh}.thumbs{width:170px}}
 @media(max-width:520px){.top{height:64px;padding:0 8px}.stage{inset:64px 0 0}.thumbs,.drawer{top:64px}.backdrop{inset:64px 0 0}.logo{min-width:118px;gap:5px}.logoMark{width:62px;height:42px}.logoText{width:50px;height:42px;padding:2px}.logoText img{width:38px;height:38px}.brandDivider{display:none}.topTitle{left:50%;}.topTitle .eyebrow{font-size:6px;letter-spacing:1.5px}.topTitle h1{font-size:15px}.topTitle p{display:none}.topActions{min-width:auto}.iconBtn{min-width:36px;height:36px}.viewer{padding:44px 2px 64px}.title{top:8px;width:94vw}.title h1{font-size:16px}.title .eyebrow{font-size:7px;letter-spacing:2px}#bookWrap{width:96vw;height:calc(100vh - 155px);min-height:360px;max-height:720px}.bottom{bottom:7px;gap:2px;padding:4px 5px}.bottom button{min-width:34px;height:34px}.counter{min-width:78px;font-size:10px}.side{display:none}.drawer{left:0}}
+
+/* FINAL UI PATCH: keep the RSO contents panel visible on the left, remove duplicate viewer title, and use a contrasting blue/navy panel. */
+.title{display:none !important}
+.side{width:58px;flex:0 0 58px;padding:17px 8px;background:#172033;border-right:1px solid #263149}
+.side button{width:42px;padding-left:0;text-align:center}
+.drawer{left:58px;top:88px;width:310px;transform:translateX(0);background:#172033;color:#fff;border-right:1px solid #2B3955;box-shadow:12px 0 34px rgba(23,32,51,.16);padding:20px 16px;z-index:40}
+.drawer h2{color:#fff}
+.drawer .sub{color:#CBD5E1}
+.drawer .search{background:#fff;color:#172033;border-color:#41516F}
+.drawer .filters .filter{background:#22304A;color:#D7DEEA;border-color:#40516F}
+.drawer .filters .filter.active{background:#FFF3C4;color:#172033;border-color:#F4C400}
+.drawer .org{border-bottom:1px solid #2D3B55}
+.drawer .org:hover{background:#22304A}
+.drawer .org b{color:#fff}
+.drawer .org span{color:#BFC9D8}
+.drawer .section{color:#F4C400}
+.drawer .backdrop{display:none !important}
+@media(max-width:800px){.side{width:50px;flex-basis:50px;padding:12px 4px}.side button{width:42px}.drawer{left:50px;width:min(310px,calc(100vw - 50px));top:64px}.viewer{padding-left:8px}}
+@media(max-width:520px){.side{display:flex;width:46px;flex-basis:46px}.side button{width:38px;height:40px}.drawer{left:46px;top:64px;width:calc(100vw - 46px);padding:14px 10px}.viewer{padding-left:4px}.drawer h2{font-size:22px}}
 </style>
 </head>
 <body>
@@ -71,7 +90,7 @@
 </div>
 
 <div class="backdrop" id="backdrop" onclick="closePanels()"></div>
-<aside class="drawer" id="drawer">
+<aside class="drawer open" id="drawer">
   <h2>Explore RSOs</h2><div class="sub">Search and jump directly to an organization.</div>
   <input class="search" id="search" placeholder="Search organization…" oninput="renderOrgList()">
   <div class="filters"><button class="filter active" data-cat="all" onclick="setFilter('all')">All</button><button class="filter" data-cat="academic" onclick="setFilter('academic')">Academic</button><button class="filter" data-cat="nonacademic" onclick="setFilter('nonacademic')">Non-Academic</button></div>
